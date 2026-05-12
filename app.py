@@ -519,7 +519,7 @@ with tab1:
     col_left, col_right = st.columns([1.1, 1.9])
 
     with col_left:
-        st.markdown('<div class="section-title">🥧 Répartition des Poids</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Répartition des Poids</div>', unsafe_allow_html=True)
         poids_pct = w_norm * 100
         fig_pie = go.Figure(go.Pie(
             labels=[n.replace("FCP ", "").replace("SICAV ", "") for n in NOMS],
