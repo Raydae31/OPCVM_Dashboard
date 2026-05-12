@@ -365,23 +365,21 @@ def calculer_frontiere(R=R_GLOBAL):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FIX RÉINITIALISATION — session_state flag pattern
+# GESTION SESSION STATE — poids des sliders
 # ══════════════════════════════════════════════════════════════════════════════
-# Au lieu de modifier directement st.session_state[f"slider_{nom}"]
-# depuis un bouton (ce qui lève StreamlitAPIException car le widget
-# est déjà lié à cette clé dans le même cycle de rendu),
-# on utilise une clé intermédiaire "default_OPCVM" comme valeur par défaut
-# et on force un rerun propre via un flag.
+# Stratégie : on stocke les poids cibles dans "poids_cible_{nom}".
+# Au début de chaque cycle, on écrit ces valeurs directement dans
+# "slider_{nom}" (clé du widget) AVANT que les sliders soient créés.
+# Streamlit accepte cela car les widgets n'existent pas encore dans ce cycle.
 
-if "do_reset" not in st.session_state:
-    st.session_state["do_reset"] = False
+# Initialiser les poids cibles au premier lancement
+for nom in NOMS:
+    if f"poids_cible_{nom}" not in st.session_state:
+        st.session_state[f"poids_cible_{nom}"] = float(POIDS_ACTUELS[nom])
 
-# Si un reset a été demandé au cycle précédent, écrire les valeurs par défaut
-# dans les clés "default_*" AVANT que les sliders soient créés.
-if st.session_state["do_reset"]:
-    for nom in NOMS:
-        st.session_state[f"default_{nom}"] = float(POIDS_ACTUELS[nom])
-    st.session_state["do_reset"] = False
+# Injecter les valeurs cibles dans les clés slider AVANT création des widgets
+for nom in NOMS:
+    st.session_state[f"slider_{nom}"] = st.session_state[f"poids_cible_{nom}"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -413,17 +411,18 @@ poids_user = {}
 for cat, fonds in CATEGORIES.items():
     with st.sidebar.expander(cat, expanded=True):
         for nom in fonds:
-            # Lire la valeur par défaut depuis "default_*" si disponible
-            default_val = st.session_state.get(f"default_{nom}", float(POIDS_ACTUELS[nom]))
+            # Le slider lit sa valeur depuis st.session_state[f"slider_{nom}"]
+            # qu'on a injecté juste au-dessus — value= est ignoré si la clé existe,
+            # donc on ne passe pas value= du tout pour éviter toute confusion.
             poids_user[nom] = st.slider(
                 nom.replace("FCP ", "").replace("SICAV ", ""),
                 min_value=0.0, max_value=25.0,
-                value=default_val,
-                step=0.1, key=f"slider_{nom}",
+                step=0.1,
+                key=f"slider_{nom}",
                 format="%.1f%%"
             )
-            # Après création du slider, synchroniser default avec slider
-            st.session_state[f"default_{nom}"] = poids_user[nom]
+            # Mettre à jour la cible avec la valeur courante du slider
+            st.session_state[f"poids_cible_{nom}"] = poids_user[nom]
 
 total_poids = sum(poids_user.values())
 delta_sum   = total_poids - 100.0
@@ -440,30 +439,27 @@ else:
 
 st.sidebar.markdown("---")
 
-# ── Bouton Réinitialiser — dans sidebar explicitement ────────────────────────
+# ── Bouton Réinitialiser ──────────────────────────────────────────────────────
 if st.sidebar.button("🔄 Réinitialiser les poids", use_container_width=True):
     for nom in NOMS:
-        st.session_state[f"default_{nom}"] = float(POIDS_ACTUELS[nom])
-    st.session_state["do_reset"] = True
+        st.session_state[f"poids_cible_{nom}"] = float(POIDS_ACTUELS[nom])
     st.rerun()
 
-# ── Sélecteur de méthode ─────────────────────────────────────────────────────
+# ── Sélecteur de méthode ──────────────────────────────────────────────────────
 methode_optim = st.sidebar.selectbox(
     "🎯 Méthode d'optimisation",
     METHODES,
+    key="methode_select",
 )
 
-# ── Bouton Appliquer — dans sidebar explicitement ────────────────────────────
+# ── Bouton Appliquer ──────────────────────────────────────────────────────────
 if st.sidebar.button(f"⚡ Appliquer : {methode_optim}", use_container_width=True, type="primary"):
     w_cur = np.array([poids_user[n] / 100 for n in NOMS])
     w_cur = np.clip(w_cur, 0.01, 0.25)
     w_cur /= w_cur.sum()
-    with st.sidebar.empty():
-        st.sidebar.info(f"⏳ Optimisation {methode_optim}...")
     w_opt = optimiser(methode_optim, w_cur)
     for i, nom in enumerate(NOMS):
-        st.session_state[f"default_{nom}"] = round(w_opt[i] * 100, 1)
-    st.session_state["do_reset"] = True
+        st.session_state[f"poids_cible_{nom}"] = round(float(w_opt[i]) * 100, 1)
     st.rerun()
 
 st.sidebar.markdown(f"""
@@ -1202,8 +1198,13 @@ with tab4:
 # ── Footer ───────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(f"""
-<div style="text-align:center;color:{COLORS['gray']};font-size:0.75rem;padding:20px;">
-  <b>OPCVM Portfolio Dashboard v2</b> — Rendements synthétiques cohérents avec les statistiques réelles.<br>
-  Rf = 2.25% · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR · Optimiseur SLSQP
+<div style="text-align:center;padding:20px;">
+  <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
+    <b>OPCVM Portfolio Dashboard v2</b> — Rendements synthétiques cohérents avec les statistiques réelles.<br>
+    Rf = 2.25% · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR · Optimiseur SLSQP
+  </p>
+  <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;letter-spacing:0.05em;">
+    © 2026 · Ben said Raydae
+  </p>
 </div>
 """, unsafe_allow_html=True)
