@@ -57,17 +57,63 @@ st.markdown(f"""
     [data-testid="stSidebar"] {{
         background-color: {COLORS['dark_green']};
     }}
+    /* Tous les textes sidebar en blanc */
     [data-testid="stSidebar"] * {{ color: white !important; }}
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] label {{ color: white !important; }}
+
+    /* Sliders */
     [data-testid="stSidebar"] .stSlider label {{ color: {COLORS['light_green']} !important; }}
+    [data-testid="stSidebar"] [data-testid="stTickBarMin"],
+    [data-testid="stSidebar"] [data-testid="stTickBarMax"] {{ color: {COLORS['mint']} !important; }}
+
+    /* Selectbox */
     [data-testid="stSidebar"] .stSelectbox label {{ color: {COLORS['light_green']} !important; }}
-    [data-testid="stSidebar"] .stButton button {{
-        background-color: {COLORS['mid_green']};
-        color: white;
-        border: none;
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] div[data-baseweb="select"] {{
+        background-color: {COLORS['mid_green']} !important;
+        border: 1px solid {COLORS['light_green']} !important;
     }}
-    [data-testid="stSidebar"] .stButton button:hover {{
-        background-color: {COLORS['light_green']};
-        color: {COLORS['dark_green']};
+
+    /* BOUTONS — règles très explicites pour forcer le rendu */
+    [data-testid="stSidebar"] .stButton > button {{
+        background-color: {COLORS['mid_green']} !important;
+        color: white !important;
+        border: 2px solid {COLORS['light_green']} !important;
+        border-radius: 6px !important;
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+        padding: 8px 4px !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }}
+    [data-testid="stSidebar"] .stButton > button:hover {{
+        background-color: {COLORS['light_green']} !important;
+        color: {COLORS['dark_green']} !important;
+        border-color: {COLORS['light_green']} !important;
+    }}
+    /* Bouton primary (Appliquer) */
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+        background-color: {COLORS['light_green']} !important;
+        color: {COLORS['dark_green']} !important;
+        border: 2px solid white !important;
+        font-size: 0.9rem !important;
+    }}
+    [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {{
+        background-color: white !important;
+        color: {COLORS['dark_green']} !important;
+    }}
+
+    /* Expander dans sidebar */
+    [data-testid="stSidebar"] .streamlit-expanderHeader {{
+        background-color: {COLORS['mid_green']} !important;
+        border-radius: 6px !important;
+        color: white !important;
+    }}
+    [data-testid="stSidebar"] .streamlit-expanderContent {{
+        background-color: rgba(255,255,255,0.05) !important;
+        border-left: 2px solid {COLORS['light_green']} !important;
     }}
     .main-header {{
         background: linear-gradient(135deg, {COLORS['dark_green']}, {COLORS['mid_green']});
@@ -393,29 +439,28 @@ else:
     )
 
 st.sidebar.markdown("---")
-col_sb1, col_sb2 = st.sidebar.columns(2)
 
-with col_sb1:
-    # FIX : on pose un flag, on ne touche PAS aux clés slider_ directement
-    if st.button("🔄 Réinitialiser", use_container_width=True):
-        for nom in NOMS:
-            st.session_state[f"default_{nom}"] = float(POIDS_ACTUELS[nom])
-        st.session_state["do_reset"] = True
-        st.rerun()
+# ── Bouton Réinitialiser — dans sidebar explicitement ────────────────────────
+if st.sidebar.button("🔄 Réinitialiser les poids", use_container_width=True):
+    for nom in NOMS:
+        st.session_state[f"default_{nom}"] = float(POIDS_ACTUELS[nom])
+    st.session_state["do_reset"] = True
+    st.rerun()
 
-with col_sb2:
-    methode_optim = st.selectbox(
-        "Méthode d'optimisation",
-        METHODES,
-        label_visibility="collapsed"
-    )
+# ── Sélecteur de méthode ─────────────────────────────────────────────────────
+methode_optim = st.sidebar.selectbox(
+    "🎯 Méthode d'optimisation",
+    METHODES,
+)
 
-if st.sidebar.button(f"⚡ Appliquer {methode_optim}", use_container_width=True, type="primary"):
+# ── Bouton Appliquer — dans sidebar explicitement ────────────────────────────
+if st.sidebar.button(f"⚡ Appliquer : {methode_optim}", use_container_width=True, type="primary"):
     w_cur = np.array([poids_user[n] / 100 for n in NOMS])
     w_cur = np.clip(w_cur, 0.01, 0.25)
     w_cur /= w_cur.sum()
-    with st.spinner(f"Optimisation {methode_optim} en cours..."):
-        w_opt = optimiser(methode_optim, w_cur)
+    with st.sidebar.empty():
+        st.sidebar.info(f"⏳ Optimisation {methode_optim}...")
+    w_opt = optimiser(methode_optim, w_cur)
     for i, nom in enumerate(NOMS):
         st.session_state[f"default_{nom}"] = round(w_opt[i] * 100, 1)
     st.session_state["do_reset"] = True
