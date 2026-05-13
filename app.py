@@ -1167,48 +1167,10 @@ with tab4:
             if m not in optim_points:
                 optim_points[m] = calcul_stats(w_optimises[m])
 
-    col_r, col_h = st.columns([1, 1.6])
-
-    with col_r:
-        cats = ["VaR 99%", "CVaR 99%", "Performance", "Sharpe", "Sortino"]
-        all_ptfs = {"Actuel": stats_ref, **optim_points}
-        col_radar = {
-            "Actuel":        COLORS["gray"],
-            "Min Variance":  COLORS["mid_green"],
-            "Max Sharpe":    COLORS["navy"],
-            "Min CVaR":      COLORS["red"],
-        }
-        radar_vals = {}
-        for nm, s in all_ptfs.items():
-            radar_vals[nm] = [-s["var99"], -s["cvar99"], s["perf"], s["sharpe"], s["sortino"]]
-
-        radar_norm = {k: [] for k in all_ptfs}
-        for i in range(len(cats)):
-            vals = [radar_vals[k][i] for k in all_ptfs]
-            mn, mx = min(vals), max(vals)
-            if mx - mn < 1e-10: mx = mn + 1
-            for k in all_ptfs:
-                radar_norm[k].append((radar_vals[k][i] - mn) / (mx - mn))
-
-        fig_radar = go.Figure()
-        for nm in all_ptfs:
-            fig_radar.add_trace(go.Scatterpolar(
-                r=radar_norm[nm], theta=cats, fill="toself", name=nm,
-                line=dict(color=col_radar[nm], width=2), opacity=0.7
-            ))
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1], tickvals=[0, 0.5, 1]),
-                angularaxis=dict(tickfont=dict(size=9))
-            ),
-            showlegend=True, height=400,
-            legend=dict(font=dict(size=8), x=1.05, y=1),
-            paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(t=40, b=40, l=40, r=80),
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
+    col_h, col_pv = st.columns([1.3, 1.7])
 
     with col_h:
+        st.markdown("#### 📊 Matrice des Poids (%)")
         noms_short = [n[:14] for n in NOMS]
         methodes_h = ["Actuel"] + list(w_optimises.keys())
         w_matrix = np.vstack([w_ref * 100, *[w_optimises[m] * 100 for m in w_optimises]])
@@ -1220,15 +1182,50 @@ with tab4:
             textfont=dict(size=8, color="black"),
             hovertemplate="<b>%{y}</b> — %{x}<br>Poids: %{z:.1f}%<extra></extra>",
             colorbar=dict(title="Poids (%)", thickness=15, len=0.8),
-            zmin=0, zmax=25,
+            zmin=0, zmax=35,
         ))
         fig_hm.update_layout(
-            height=400, paper_bgcolor="rgba(0,0,0,0)",
+            height=420, paper_bgcolor="rgba(0,0,0,0)",
             xaxis=dict(tickangle=-45, tickfont=dict(size=8)),
             yaxis=dict(tickfont=dict(size=9)),
             margin=dict(t=30, b=80, l=100, r=20),
         )
         st.plotly_chart(fig_hm, use_container_width=True)
+
+    with col_pv:
+        st.markdown("#### 📈 Performance vs Volatilité")
+        perf_m   = [stats_ref["perf"]] + [optim_points[m]["perf"] for m in optim_points]
+        vol_m    = [stats_ref["vol"]]  + [optim_points[m]["vol"]  for m in optim_points]
+        noms_ptf = ["Actuel"] + list(optim_points.keys())
+        cols_bar2 = [COLORS["gray"], COLORS["mid_green"], COLORS["navy"], COLORS["red"]]
+        fig_pv = go.Figure()
+        fig_pv.add_trace(go.Scatter(
+            x=vol_m, y=perf_m,
+            mode="markers+text",
+            marker=dict(size=28, color=cols_bar2, line=dict(color="white", width=2)),
+            text=noms_ptf,
+            textposition="middle center",
+            textfont=dict(size=8, color="white", family="Arial Black"),
+            hovertemplate="<b>%{text}</b><br>Vol: %{x:.2f}%<br>Perf: %{y:.2f}%<extra></extra>",
+        ))
+        if len(vol_m) > 1:
+            z = np.polyfit(vol_m, perf_m, 1)
+            p = np.poly1d(z)
+            x_tr = np.linspace(min(vol_m) * 0.9, max(vol_m) * 1.1, 100)
+            fig_pv.add_trace(go.Scatter(
+                x=x_tr, y=p(x_tr), mode="lines", name="Tendance",
+                line=dict(color=COLORS["gold"], dash="dash", width=1.5), opacity=0.5
+            ))
+        fig_pv.update_layout(
+            height=420,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(244,247,251,0.7)",
+            xaxis=dict(title="Volatilité Annualisée (%)", gridcolor="#E2E8F0"),
+            yaxis=dict(title="Performance Annualisée (%)", gridcolor="#E2E8F0"),
+            margin=dict(t=20, b=30, l=50, r=30),
+            hovermode="closest",
+        )
+        st.plotly_chart(fig_pv, use_container_width=True)
 
     st.markdown('<div class="section-title">📉 Comparaison des Mesures de Risque</div>', unsafe_allow_html=True)
     noms_ptf  = ["Actuel"] + list(optim_points.keys())
@@ -1283,39 +1280,6 @@ with tab4:
         margin=dict(t=40, b=30, l=50, r=30),
     )
     st.plotly_chart(fig_sh, use_container_width=True)
-
-    st.markdown('<div class="section-title">📊 Performance vs Volatilité par Méthode</div>',
-                unsafe_allow_html=True)
-    perf_m = [stats_ref["perf"]] + [optim_points[m]["perf"] for m in optim_points]
-    vol_m  = [stats_ref["vol"]]  + [optim_points[m]["vol"]  for m in optim_points]
-    fig_pv = go.Figure()
-    fig_pv.add_trace(go.Scatter(
-        x=vol_m, y=perf_m,
-        mode="markers+text",
-        marker=dict(size=26, color=cols_bar2, line=dict(color="white", width=2)),
-        text=noms_ptf,
-        textposition="middle center",
-        textfont=dict(size=8, color="white", family="Arial Black"),
-        hovertemplate="<b>%{text}</b><br>Vol: %{x:.2f}%<br>Perf: %{y:.2f}%<extra></extra>",
-    ))
-    if len(vol_m) > 1:
-        z = np.polyfit(vol_m, perf_m, 1)
-        p = np.poly1d(z)
-        x_tr = np.linspace(min(vol_m) * 0.9, max(vol_m) * 1.1, 100)
-        fig_pv.add_trace(go.Scatter(
-            x=x_tr, y=p(x_tr), mode="lines", name="Tendance",
-            line=dict(color=COLORS["gold"], dash="dash", width=1.5), opacity=0.5
-        ))
-    fig_pv.update_layout(
-        height=350,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(244,247,251,0.7)",
-        xaxis=dict(title="Volatilité Annualisée (%)", gridcolor="#E2E8F0"),
-        yaxis=dict(title="Performance Annualisée (%)", gridcolor="#E2E8F0"),
-        margin=dict(t=20, b=30, l=50, r=30),
-        hovermode="closest",
-    )
-    st.plotly_chart(fig_pv, use_container_width=True)
 
 
 # ── Footer ───────────────────────────────────────────────────────────────────
