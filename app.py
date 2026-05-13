@@ -1,5 +1,5 @@
 """
-OPCVM Portfolio Dashboard — Streamlit (Amélioré v2)
+OPCVM Portfolio Dashboard — Streamlit 
 """
 
 import streamlit as st
@@ -250,26 +250,81 @@ def calcul_stats(w_arr, R=R_GLOBAL):
             "var99": var99, "cvar99": cvar99, "dd_max": dd_max}
 
 
+def calculer_bornes_dynamiques(mu_ann, vol_ann, w_actuel):
+    """
+    Calcule des bornes min/max réalistes par OPCVM selon leur profil.
+
+    Logique :
+      - Borne max = f(score risque/rendement) : les OPCVM à fort Sharpe et
+        faible volatilité peuvent recevoir plus de poids.
+      - Borne min = fraction du poids actuel : on garde une présence minimale
+        sur chaque fonds déjà en portefeuille (diversification).
+      - Plafond absolu : 35% (évite la concentration excessive).
+      - Plancher absolu : 0.5% (présence symbolique minimale).
+
+    Paramètres
+    ----------
+    mu_ann  : rendements annualisés (array n)
+    vol_ann : volatilités annualisées (array n)
+    w_actuel: poids actuels normalisés (array n)
+    """
+    n = len(mu_ann)
+
+    # Score Sharpe simplifié par OPCVM (rendement / volatilité)
+    sharpe_ind = np.array([META[nom]["sharpe"] for nom in NOMS])
+    vol_ind    = np.array([META[nom]["vol"]    for nom in NOMS])
+
+    # --- Borne MAXIMALE ---
+    # Base : proportionnelle au score Sharpe de chaque OPCVM
+    # Plus le Sharpe est élevé, plus on peut lui allouer
+    sharpe_pos = np.clip(sharpe_ind, 0.1, None)
+    poids_sharpe = sharpe_pos / sharpe_pos.sum()  # normalise entre 0 et 1
+
+    # Score de volatilité inversée : OPCVM peu volatils peuvent peser plus
+    vol_inv = 1.0 / (vol_ind + 0.1)
+    poids_vol = vol_inv / vol_inv.sum()
+
+    # Score composite : 60% Sharpe + 40% faible vol
+    score = 0.60 * poids_sharpe + 0.40 * poids_vol
+
+    # Max = score * facteur_amplification, plafonné à 35%
+    facteur = 3.5  # score moyen ~1/n → max moyen ~3.5/n ≈ 25% pour 14 OPCVM
+    max_bounds = np.clip(score * facteur, 0.05, 0.35)
+
+    # --- Borne MINIMALE ---
+    # Présence minimale = 30% du poids actuel, plancher à 0.5%
+    min_bounds = np.clip(w_actuel * 0.30, 0.005, 0.10)
+
+    # Cohérence : si min > max, on abaisse min
+    for i in range(n):
+        if min_bounds[i] >= max_bounds[i]:
+            min_bounds[i] = max(0.005, max_bounds[i] * 0.5)
+
+    return list(zip(min_bounds, max_bounds))
+
+
 def optimiser(methode, w_actuel, R=R_GLOBAL):
     """
-    Optimisation sans bornes fixes par OPCVM.
-    Seules contraintes :
-      - somme = 100%
-      - poids >= 0% (long only, pas de vente a decouvert)
-    Chaque poids peut donc aller de 0% a 100% librement.
+    Optimisation avec bornes dynamiques par OPCVM.
+
+    Les bornes sont calculées selon le profil risque/rendement de chaque fonds :
+      - OPCVM à fort Sharpe et faible volatilité → borne max plus élevée
+      - OPCVM à faible Sharpe et forte volatilité → borne max plus basse
+      - Présence minimale maintenue sur chaque fonds (diversification)
+      - Somme = 100% obligatoire
     """
     mu  = R.mean(axis=0) * 252
     cov = np.cov(R.T) * 252
     n   = len(w_actuel)
 
-    # Long only sans plafond par OPCVM
-    bounds = [(0.0, 1.0)] * n
+    # Bornes dynamiques basées sur le profil de chaque OPCVM
+    bounds = calculer_bornes_dynamiques(mu, np.sqrt(np.diag(cov)), w_actuel)
 
-    # Somme = 100%
+    # Contrainte : somme = 100%
     constraints = [{"type": "eq", "fun": lambda w: w.sum() - 1.0}]
 
-    # Rendement min = 50% du rendement actuel (evite solutions degenerees)
-    ret_min = (mu @ w_actuel) * 0.5
+    # Rendement min = 80% du rendement actuel (plus conservateur qu'avant)
+    ret_min = (mu @ w_actuel) * 0.80
     if methode != "Min Variance":
         constraints.append({"type": "ineq", "fun": lambda w: (mu @ w) - ret_min})
 
@@ -287,10 +342,31 @@ def optimiser(methode, w_actuel, R=R_GLOBAL):
 
     rng = np.random.default_rng(42)
     best = None
-    # 12 points de depart varies sur le simplex
+
+    # Point de départ 1 : poids actuels
     starts = [w_actuel.copy()]
-    for _ in range(12):
+
+    # Points de départ 2-6 : poids proportionnels au score Sharpe + bruit
+    sharpe_ind = np.array([META[nom]["sharpe"] for nom in NOMS])
+    sharpe_pos = np.clip(sharpe_ind, 0.1, None)
+    w_sharpe   = sharpe_pos / sharpe_pos.sum()
+
+    for alpha in [1.0, 0.7, 0.5, 0.3]:
+        w0 = alpha * w_sharpe + (1 - alpha) * rng.dirichlet(np.ones(n))
+        # Respecter les bornes
+        lo = np.array([b[0] for b in bounds])
+        hi = np.array([b[1] for b in bounds])
+        w0 = np.clip(w0, lo, hi)
+        if w0.sum() > 1e-8:
+            w0 /= w0.sum()
+        starts.append(w0)
+
+    # Points de départ 7-13 : Dirichlet aléatoires clippés
+    for _ in range(7):
         w0 = rng.dirichlet(np.ones(n))
+        w0 = np.clip(w0, lo, hi)
+        if w0.sum() > 1e-8:
+            w0 /= w0.sum()
         starts.append(w0)
 
     for w0 in starts:
@@ -304,7 +380,10 @@ def optimiser(methode, w_actuel, R=R_GLOBAL):
             pass
 
     if best is not None and best.success:
-        w_opt = np.clip(best.x, 0.0, 1.0)
+        w_opt = best.x
+        lo = np.array([b[0] for b in bounds])
+        hi = np.array([b[1] for b in bounds])
+        w_opt = np.clip(w_opt, lo, hi)
         w_opt /= w_opt.sum()
         return w_opt
     return w_actuel
@@ -326,7 +405,9 @@ def calculer_frontiere(R=R_GLOBAL):
 
     vols, rets, sharpes, var99s, cvar99s = [], [], [], [], []
     constraints_base = [{"type": "eq", "fun": lambda w: w.sum() - 1.0}]
-    bounds = [(0.0, 1.0)] * n   # long only, sans plafond par OPCVM
+
+    # Bornes cohérentes avec l'optimiseur : long only, max 35% par OPCVM
+    bounds = [(0.0, 0.35)] * n
     obj    = lambda w: w @ cov @ w
 
     for t in targets:
@@ -387,7 +468,7 @@ st.sidebar.markdown(f"""
 <div style="background:{COLORS['mid_green']};padding:12px;border-radius:8px;margin-bottom:12px;
             border-left:4px solid {COLORS['light_green']}">
   <h2 style="color:white;margin:0;font-size:1.1rem">⚖️ Pondérations OPCVM</h2>
-  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (0% – 100%)</p>
+  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (0% – 35%)</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -413,7 +494,7 @@ for cat, fonds in CATEGORIES.items():
             # donc on ne passe pas value= du tout pour éviter toute confusion.
             poids_user[nom] = st.slider(
                 nom.replace("FCP ", "").replace("SICAV ", ""),
-                min_value=0.0, max_value=100.0,
+                min_value=0.0, max_value=35.0,
                 step=0.1,
                 key=f"slider_{nom}",
                 format="%.1f%%"
@@ -587,7 +668,7 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(244,247,251,0.5)",
             xaxis=dict(tickangle=-45, tickfont=dict(size=8)),
-            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 105]),
+            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 40]),
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -997,9 +1078,11 @@ with tab2:
     <div style="background:{COLORS['mint']};border-left:4px solid {COLORS['mid_green']};
                 padding:10px 14px;border-radius:6px;font-size:0.82rem;color:{COLORS['dark_green']};
                 margin-top:8px;">
-      <b>ℹ️ Contraintes d'optimisation :</b> Long only (poids ≥ 0%), somme = 100%.
-      Aucune borne supérieure par OPCVM — l'algorithme peut concentrer librement sur les meilleurs OPCVM
-      selon chaque critère (variance minimale, Sharpe maximal, CVaR minimale).
+      <b>ℹ️ Bornes dynamiques par OPCVM :</b> Chaque fonds reçoit une borne maximale calculée
+      selon son Sharpe (60%) et sa faible volatilité (40%). Les OPCVM les plus efficaces
+      (CDG RENDEMENT, EMERGENCE SERENITE) peuvent recevoir jusqu'à ~35%, les moins efficaces
+      restent plafonnés plus bas. Une présence minimale (~30% du poids actuel) est maintenue
+      sur chaque fonds pour assurer la diversification. Somme = 100% garantie.
     </div>
     """, unsafe_allow_html=True)
 
