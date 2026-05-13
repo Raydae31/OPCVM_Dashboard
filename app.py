@@ -1,5 +1,23 @@
 """
-OPCVM Portfolio Dashboard — Streamlit
+OPCVM Portfolio Dashboard — Streamlit (Amélioré v2)
+====================================================
+Corrections & améliorations :
+  · Fix erreur StreamlitAPIException sur le bouton Réinitialiser
+    (utilisation d'un flag session_state + default_value au lieu de
+     modifier directement la clé d'un widget actif)
+  · Suppression de la méthode "Score Composite"
+  · Frontière efficiente enrichie :
+      - 200 points (densité doublée)
+      - Colormap dynamique par Sharpe (et non VaR seule)
+      - Tangent Portfolio clairement identifié (Max Sharpe sur la frontière)
+      - Zone risque/rendement annotée (quadrants)
+      - Tooltip détaillé sur chaque point de la frontière
+      - CML tracée depuis Rf jusqu'au portefeuille tangent puis extrapolée
+      - Légende restructurée
+
+Lancement :
+    pip install streamlit pandas numpy scipy plotly openpyxl
+    streamlit run opcvm_dashboard.py
 """
 
 import streamlit as st
@@ -387,7 +405,7 @@ st.sidebar.markdown(f"""
 <div style="background:{COLORS['mid_green']};padding:12px;border-radius:8px;margin-bottom:12px;
             border-left:4px solid {COLORS['light_green']}">
   <h2 style="color:white;margin:0;font-size:1.1rem">⚖️ Pondérations OPCVM</h2>
-  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (1% – 25%)</p>
+  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (0% – 100%)</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -413,7 +431,7 @@ for cat, fonds in CATEGORIES.items():
             # donc on ne passe pas value= du tout pour éviter toute confusion.
             poids_user[nom] = st.slider(
                 nom.replace("FCP ", "").replace("SICAV ", ""),
-                min_value=0.0, max_value=25.0,
+                min_value=0.0, max_value=100.0,
                 step=0.1,
                 key=f"slider_{nom}",
                 format="%.1f%%"
@@ -580,8 +598,6 @@ with tab1:
             text=[f"{p:.1f}%" for p in poids_pct],
             textposition="outside", textfont=dict(size=8)
         ))
-        fig_bar.add_hline(y=1,  line_dash="dot", line_color=COLORS["light_green"], line_width=1)
-        fig_bar.add_hline(y=25, line_dash="dot", line_color=COLORS["red"],         line_width=1)
         fig_bar.update_layout(
             barmode="group", height=380,
             margin=dict(t=10, b=80, l=10, r=10),
@@ -589,7 +605,7 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(244,247,251,0.5)",
             xaxis=dict(tickangle=-45, tickfont=dict(size=8)),
-            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 30]),
+            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 105]),
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
