@@ -179,20 +179,22 @@ POIDS_ACTUELS = {
 }
 
 META = {
-    "AFG GOV BOND FUND":       {"perf": 6.41,  "vol": 3.61,  "sharpe": 1.774, "sortino": 2.524, "alpha_j": -0.82, "beta": 0.79,  "te": 1.638, "ir": -1.291, "dd": -2.71,  "var99": -0.384, "cvar99": -0.412},
-    "AD BALANCED FUND":        {"perf": 33.23, "vol": 14.27, "sharpe": 2.210, "sortino": 3.242, "alpha_j": -1.99, "beta": 5.25,  "te": 12.287,"ir":  2.011, "dd": -17.80, "var99": -1.906, "cvar99": -2.145},
-    "AFG OPTIMAL FUND":        {"perf": 12.66, "vol": 9.68,  "sharpe": 1.179, "sortino": 1.422, "alpha_j": -8.68, "beta": 3.04,  "te": 7.320, "ir":  0.565, "dd": -7.75,  "var99": -1.573, "cvar99": -1.831},
-    "CDG IZDIHAR":             {"perf": 21.31, "vol": 10.42, "sharpe": 1.832, "sortino": 2.840, "alpha_j": -6.59, "beta": 4.09,  "te": 8.597, "ir":  1.488, "dd": -14.11, "var99": -1.293, "cvar99": -1.524},
-    "AD SELECT BANK":          {"perf": 3.50,  "vol": 0.55,  "sharpe": 2.305, "sortino": 3.063, "alpha_j":  0.69, "beta": 0.09,  "te": 2.056, "ir": -2.442, "dd": -0.19,  "var99": -0.081, "cvar99": -0.094},
-    "ALPHA BANQUES FUND":      {"perf": 3.23,  "vol": 0.48,  "sharpe": 2.024, "sortino": 2.706, "alpha_j":  0.46, "beta": 0.08,  "te": 2.056, "ir": -2.574, "dd": -0.18,  "var99": -0.078, "cvar99": -0.091},
-    "ALPHA SECURE FUND":       {"perf": 5.44,  "vol": 1.70,  "sharpe": 1.871, "sortino": 2.393, "alpha_j":  0.24, "beta": 0.47,  "te": 1.787, "ir": -1.728, "dd": -1.59,  "var99": -0.274, "cvar99": -0.315},
-    "CAM OBLIBANQUES":         {"perf": 3.32,  "vol": 0.63,  "sharpe": 1.965, "sortino": 2.741, "alpha_j":  0.53, "beta": 0.09,  "te": 2.063, "ir": -2.524, "dd": -0.17,  "var99": -0.074, "cvar99": -0.088},
-    "CDG RENDEMENT":           {"perf": 12.85, "vol": 2.36,  "sharpe": 4.600, "sortino": 6.264, "alpha_j":  5.81, "beta": 0.76,  "te": 1.670, "ir":  2.590, "dd": -3.68,  "var99": -0.283, "cvar99": -0.321},
-    "OBLIG CT":                {"perf": 3.40,  "vol": 0.54,  "sharpe": 2.141, "sortino": 2.652, "alpha_j":  0.61, "beta": 0.09,  "te": 2.063, "ir": -2.483, "dd": -0.19,  "var99": -0.096, "cvar99": -0.112},
-    "CDG TAWFIR":              {"perf": 5.58,  "vol": 1.91,  "sharpe": 1.762, "sortino": 2.278, "alpha_j": -0.52, "beta": 0.61,  "te": 1.576, "ir": -1.868, "dd": -1.69,  "var99": -0.344, "cvar99": -0.388},
-    "EMERGENCE SERENITE":      {"perf": 10.73, "vol": 2.27,  "sharpe": 3.739, "sortino": 5.365, "alpha_j":  3.17, "beta": 0.85,  "te": 1.353, "ir":  1.630, "dd": -3.60,  "var99": -0.616, "cvar99": -0.684},
-    "CAPITAL TRUST EQUILIBRE": {"perf": 11.92, "vol": 9.11,  "sharpe": 1.178, "sortino": 1.420, "alpha_j": -8.53, "beta": 2.90,  "te": 6.662, "ir":  0.510, "dd": -7.63,  "var99": -1.710, "cvar99": -1.965},
-    "AD YIELD FUND":           {"perf": 3.22,  "vol": 0.58,  "sharpe": 1.681, "sortino": 2.277, "alpha_j":  0.43, "beta": 0.09,  "te": 2.073, "ir": -2.561, "dd": -0.21,  "var99": -0.089, "cvar99": -0.103},
+    # Valeurs réelles issues du classement multi-critères
+    # Perf = performance annualisée réelle | Beta OLS | Alpha Jensen corrigé | Sharpe ajusté Rf=2.25%
+    "AFG GOV BOND FUND":       {"perf":  6.11, "vol": 2.36, "sharpe": 1.63, "sortino": 2.31, "alpha_j":  0.69, "beta": 1.23, "te": 1.50, "ir":  0.82, "dd": -2.71, "var99": -0.384, "cvar99": -0.412},
+    "AD BALANCED FUND":        {"perf":  9.58, "vol":32.49, "sharpe": 1.93, "sortino": 2.88, "alpha_j":-49.55, "beta": 1.35, "te":10.52, "ir": -0.89, "dd": -8.87, "var99": -1.906, "cvar99": -2.145},
+    "AFG OPTIMAL FUND":        {"perf": 12.22, "vol": 8.79, "sharpe": 1.23, "sortino": 1.46, "alpha_j": -3.29, "beta": 1.54, "te": 3.52, "ir":  0.49, "dd": -7.75, "var99": -1.573, "cvar99": -1.831},
+    "CDG IZDIHAR":             {"perf":  8.98, "vol":24.76, "sharpe": 2.34, "sortino": 3.97, "alpha_j":-15.01, "beta": 2.85, "te":22.95, "ir":  1.13, "dd": -6.71, "var99": -1.293, "cvar99": -1.524},
+    "AD SELECT BANK":          {"perf":  3.61, "vol": 0.55, "sharpe": 2.44, "sortino": 3.23, "alpha_j":  0.90, "beta": 1.19, "te": 0.32, "ir":  2.99, "dd": -0.19, "var99": -0.081, "cvar99": -0.094},
+    "ALPHA BANQUES FUND":      {"perf":  3.32, "vol": 0.50, "sharpe": 2.16, "sortino": 2.90, "alpha_j":  0.66, "beta": 1.06, "te": 0.28, "ir":  2.41, "dd": -0.18, "var99": -0.078, "cvar99": -0.091},
+    "ALPHA SECURE FUND":       {"perf":  5.21, "vol": 1.71, "sharpe": 1.73, "sortino": 2.18, "alpha_j":  0.52, "beta": 0.94, "te": 0.95, "ir":  0.38, "dd": -1.59, "var99": -0.274, "cvar99": -0.315},
+    "CAM OBLIBANQUES":         {"perf":  3.38, "vol": 0.55, "sharpe": 2.04, "sortino": 2.84, "alpha_j":  0.60, "beta": 1.15, "te": 0.25, "ir":  2.58, "dd": -0.17, "var99": -0.074, "cvar99": -0.088},
+    "CDG RENDEMENT":           {"perf": 25.39, "vol": 5.05, "sharpe": 4.58, "sortino": 6.49, "alpha_j":  6.76, "beta": 0.66, "te": 3.48, "ir": -0.38, "dd": -1.69, "var99": -0.283, "cvar99": -0.321},
+    "OBLIG CT":                {"perf":  3.44, "vol": 0.55, "sharpe": 2.18, "sortino": 2.69, "alpha_j":  0.66, "beta": 1.04, "te": 0.22, "ir":  3.02, "dd": -0.19, "var99": -0.096, "cvar99": -0.112},
+    "CDG TAWFIR":              {"perf":  5.34, "vol": 1.91, "sharpe": 1.62, "sortino": 2.08, "alpha_j":  0.52, "beta": 0.99, "te": 1.16, "ir":  0.42, "dd": -1.69, "var99": -0.344, "cvar99": -0.388},
+    "EMERGENCE SERENITE":      {"perf": 23.04, "vol": 4.83, "sharpe": 4.31, "sortino": 5.79, "alpha_j": -1.78, "beta": 1.10, "te": 2.34, "ir":  0.12, "dd": -1.66, "var99": -0.616, "cvar99": -0.684},
+    "CAPITAL TRUST EQUILIBRE": {"perf": 12.26, "vol": 8.22, "sharpe": 1.22, "sortino": 1.45, "alpha_j": -1.79, "beta": 1.30, "te": 4.27, "ir":  0.23, "dd": -7.63, "var99": -1.710, "cvar99": -1.965},
+    "AD YIELD FUND":           {"perf":  3.31, "vol": 0.59, "sharpe": 1.81, "sortino": 2.45, "alpha_j":  0.59, "beta": 1.21, "te": 0.36, "ir":  1.83, "dd": -0.21, "var99": -0.089, "cvar99": -0.103},
 }
 
 NOMS     = list(POIDS_ACTUELS.keys())
