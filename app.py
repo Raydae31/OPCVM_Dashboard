@@ -1,5 +1,23 @@
 """
-OPCVM Portfolio Dashboard — Streamlit 
+OPCVM Portfolio Dashboard — Streamlit (Amélioré v2)
+====================================================
+Corrections & améliorations :
+  · Fix erreur StreamlitAPIException sur le bouton Réinitialiser
+    (utilisation d'un flag session_state + default_value au lieu de
+     modifier directement la clé d'un widget actif)
+  · Suppression de la méthode "Score Composite"
+  · Frontière efficiente enrichie :
+      - 200 points (densité doublée)
+      - Colormap dynamique par Sharpe (et non VaR seule)
+      - Tangent Portfolio clairement identifié (Max Sharpe sur la frontière)
+      - Zone risque/rendement annotée (quadrants)
+      - Tooltip détaillé sur chaque point de la frontière
+      - CML tracée depuis Rf jusqu'au portefeuille tangent puis extrapolée
+      - Légende restructurée
+
+Lancement :
+    pip install streamlit pandas numpy scipy plotly openpyxl
+    streamlit run opcvm_dashboard.py
 """
 
 import streamlit as st
@@ -625,7 +643,7 @@ with tab1:
     col_left, col_right = st.columns([1.1, 1.9])
 
     with col_left:
-        st.markdown('<div class="section-title">📊 Répartition des Poids</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">🥧 Répartition des Poids</div>', unsafe_allow_html=True)
         poids_pct = w_norm * 100
         fig_pie = go.Figure(go.Pie(
             labels=[n.replace("FCP ", "").replace("SICAV ", "") for n in NOMS],
@@ -1287,11 +1305,11 @@ st.markdown("---")
 st.markdown(f"""
 <div style="text-align:center;padding:20px;">
   <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
-    <b>OPCVM Portfolio Dashboard </b> — Rendements synthétiques cohérents avec les statistiques réelles.<br>
-     247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR · Optimiseur SLSQP
+    <b>OPCVM Portfolio Dashboard v2</b> — Rendements synthétiques cohérents avec les statistiques réelles.<br>
+    Rf = 2.25% · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR · Optimiseur SLSQP
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;letter-spacing:0.05em;">
-    © 2026 · Ben said Raydae
+    © 2026 · Raydae
   </p>
 </div>
 """, unsafe_allow_html=True)
