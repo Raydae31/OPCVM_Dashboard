@@ -1,5 +1,23 @@
 """
-OPCVM Portfolio Dashboard 
+OPCVM Portfolio Dashboard — Streamlit (Amélioré v2)
+====================================================
+Corrections & améliorations :
+  · Fix erreur StreamlitAPIException sur le bouton Réinitialiser
+    (utilisation d'un flag session_state + default_value au lieu de
+     modifier directement la clé d'un widget actif)
+  · Suppression de la méthode "Score Composite"
+  · Frontière efficiente enrichie :
+      - 200 points (densité doublée)
+      - Colormap dynamique par Sharpe (et non VaR seule)
+      - Tangent Portfolio clairement identifié (Max Sharpe sur la frontière)
+      - Zone risque/rendement annotée (quadrants)
+      - Tooltip détaillé sur chaque point de la frontière
+      - CML tracée depuis Rf jusqu'au portefeuille tangent puis extrapolée
+      - Légende restructurée
+
+Lancement :
+    pip install streamlit pandas numpy scipy plotly openpyxl
+    streamlit run opcvm_dashboard.py
 """
 
 import streamlit as st
