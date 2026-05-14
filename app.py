@@ -1,23 +1,5 @@
 """
-OPCVM Portfolio Dashboard — Streamlit (Amélioré v2)
-====================================================
-Corrections & améliorations :
-  · Fix erreur StreamlitAPIException sur le bouton Réinitialiser
-    (utilisation d'un flag session_state + default_value au lieu de
-     modifier directement la clé d'un widget actif)
-  · Suppression de la méthode "Score Composite"
-  · Frontière efficiente enrichie :
-      - 200 points (densité doublée)
-      - Colormap dynamique par Sharpe (et non VaR seule)
-      - Tangent Portfolio clairement identifié (Max Sharpe sur la frontière)
-      - Zone risque/rendement annotée (quadrants)
-      - Tooltip détaillé sur chaque point de la frontière
-      - CML tracée depuis Rf jusqu'au portefeuille tangent puis extrapolée
-      - Légende restructurée
-
-Lancement :
-    pip install streamlit pandas numpy scipy plotly openpyxl
-    streamlit run opcvm_dashboard.py
+OPCVM Portfolio Dashboard — Streamlit (Amélioré)
 """
 
 import streamlit as st
@@ -197,23 +179,20 @@ POIDS_ACTUELS = {
 }
 
 META = {
-    # Valeurs réelles issues du classement multi-critères
-    # Perf = performance annualisée réelle | Beta OLS | Alpha Jensen corrigé | Sharpe ajusté Rf=2.25%
-    # VaR99 et CVaR99 = valeurs journalières historiques individuelles
-    "AFG GOV BOND FUND":       {"perf":  6.11, "vol": 2.36, "sharpe": 1.63, "sortino": 2.31, "alpha_j":  0.69, "beta": 1.23, "te": 1.50, "ir":  0.82, "dd": -2.71, "var99": -0.384, "cvar99": -0.412},
-    "AD BALANCED FUND":        {"perf":  9.58, "vol":32.49, "sharpe": 1.93, "sortino": 2.88, "alpha_j":-49.55, "beta": 1.35, "te":10.52, "ir": -0.89, "dd": -8.87, "var99": -1.906, "cvar99": -2.145},
-    "AFG OPTIMAL FUND":        {"perf": 12.22, "vol": 8.79, "sharpe": 1.23, "sortino": 1.46, "alpha_j": -3.29, "beta": 1.54, "te": 3.52, "ir":  0.49, "dd": -7.75, "var99": -1.573, "cvar99": -1.831},
-    "CDG IZDIHAR":             {"perf":  8.98, "vol":24.76, "sharpe": 2.34, "sortino": 3.97, "alpha_j":-15.01, "beta": 2.85, "te":22.95, "ir":  1.13, "dd": -6.71, "var99": -1.293, "cvar99": -1.524},
-    "AD SELECT BANK":          {"perf":  3.61, "vol": 0.55, "sharpe": 2.44, "sortino": 3.23, "alpha_j":  0.90, "beta": 1.19, "te": 0.32, "ir":  2.99, "dd": -0.19, "var99": -0.081, "cvar99": -0.094},
-    "ALPHA BANQUES FUND":      {"perf":  3.32, "vol": 0.50, "sharpe": 2.16, "sortino": 2.90, "alpha_j":  0.66, "beta": 1.06, "te": 0.28, "ir":  2.41, "dd": -0.18, "var99": -0.078, "cvar99": -0.091},
-    "ALPHA SECURE FUND":       {"perf":  5.21, "vol": 1.71, "sharpe": 1.73, "sortino": 2.18, "alpha_j":  0.52, "beta": 0.94, "te": 0.95, "ir":  0.38, "dd": -1.59, "var99": -0.274, "cvar99": -0.315},
-    "CAM OBLIBANQUES":         {"perf":  3.38, "vol": 0.55, "sharpe": 2.04, "sortino": 2.84, "alpha_j":  0.60, "beta": 1.15, "te": 0.25, "ir":  2.58, "dd": -0.17, "var99": -0.074, "cvar99": -0.088},
-    "CDG RENDEMENT":           {"perf": 25.39, "vol": 5.05, "sharpe": 4.58, "sortino": 6.49, "alpha_j":  6.76, "beta": 0.66, "te": 3.48, "ir": -0.38, "dd": -1.69, "var99": -0.283, "cvar99": -0.321},
-    "OBLIG CT":                {"perf":  3.44, "vol": 0.55, "sharpe": 2.18, "sortino": 2.69, "alpha_j":  0.66, "beta": 1.04, "te": 0.22, "ir":  3.02, "dd": -0.19, "var99": -0.096, "cvar99": -0.112},
-    "CDG TAWFIR":              {"perf":  5.34, "vol": 1.91, "sharpe": 1.62, "sortino": 2.08, "alpha_j":  0.52, "beta": 0.99, "te": 1.16, "ir":  0.42, "dd": -1.69, "var99": -0.344, "cvar99": -0.388},
-    "EMERGENCE SERENITE":      {"perf": 23.04, "vol": 4.83, "sharpe": 4.31, "sortino": 5.79, "alpha_j": -1.78, "beta": 1.10, "te": 2.34, "ir":  0.12, "dd": -1.66, "var99": -0.616, "cvar99": -0.684},
-    "CAPITAL TRUST EQUILIBRE": {"perf": 12.26, "vol": 8.22, "sharpe": 1.22, "sortino": 1.45, "alpha_j": -1.79, "beta": 1.30, "te": 4.27, "ir":  0.23, "dd": -7.63, "var99": -1.710, "cvar99": -1.965},
-    "AD YIELD FUND":           {"perf":  3.31, "vol": 0.59, "sharpe": 1.81, "sortino": 2.45, "alpha_j":  0.59, "beta": 1.21, "te": 0.36, "ir":  1.83, "dd": -0.21, "var99": -0.089, "cvar99": -0.103},
+    "AFG GOV BOND FUND":       {"perf": 6.41,  "vol": 3.61,  "sharpe": 1.774, "sortino": 2.524, "alpha_j": -0.82, "beta": 0.79,  "te": 1.638, "ir": -1.291, "dd": -2.71,  "var99": -0.384, "cvar99": -0.412},
+    "AD BALANCED FUND":        {"perf": 33.23, "vol": 14.27, "sharpe": 2.210, "sortino": 3.242, "alpha_j": -1.99, "beta": 5.25,  "te": 12.287,"ir":  2.011, "dd": -17.80, "var99": -1.906, "cvar99": -2.145},
+    "AFG OPTIMAL FUND":        {"perf": 12.66, "vol": 9.68,  "sharpe": 1.179, "sortino": 1.422, "alpha_j": -8.68, "beta": 3.04,  "te": 7.320, "ir":  0.565, "dd": -7.75,  "var99": -1.573, "cvar99": -1.831},
+    "CDG IZDIHAR":             {"perf": 21.31, "vol": 10.42, "sharpe": 1.832, "sortino": 2.840, "alpha_j": -6.59, "beta": 4.09,  "te": 8.597, "ir":  1.488, "dd": -14.11, "var99": -1.293, "cvar99": -1.524},
+    "AD SELECT BANK":          {"perf": 3.50,  "vol": 0.55,  "sharpe": 2.305, "sortino": 3.063, "alpha_j":  0.69, "beta": 0.09,  "te": 2.056, "ir": -2.442, "dd": -0.19,  "var99": -0.081, "cvar99": -0.094},
+    "ALPHA BANQUES FUND":      {"perf": 3.23,  "vol": 0.48,  "sharpe": 2.024, "sortino": 2.706, "alpha_j":  0.46, "beta": 0.08,  "te": 2.056, "ir": -2.574, "dd": -0.18,  "var99": -0.078, "cvar99": -0.091},
+    "ALPHA SECURE FUND":       {"perf": 5.44,  "vol": 1.70,  "sharpe": 1.871, "sortino": 2.393, "alpha_j":  0.24, "beta": 0.47,  "te": 1.787, "ir": -1.728, "dd": -1.59,  "var99": -0.274, "cvar99": -0.315},
+    "CAM OBLIBANQUES":         {"perf": 3.32,  "vol": 0.63,  "sharpe": 1.965, "sortino": 2.741, "alpha_j":  0.53, "beta": 0.09,  "te": 2.063, "ir": -2.524, "dd": -0.17,  "var99": -0.074, "cvar99": -0.088},
+    "CDG RENDEMENT":           {"perf": 12.85, "vol": 2.36,  "sharpe": 4.600, "sortino": 6.264, "alpha_j":  5.81, "beta": 0.76,  "te": 1.670, "ir":  2.590, "dd": -3.68,  "var99": -0.283, "cvar99": -0.321},
+    "OBLIG CT":                {"perf": 3.40,  "vol": 0.54,  "sharpe": 2.141, "sortino": 2.652, "alpha_j":  0.61, "beta": 0.09,  "te": 2.063, "ir": -2.483, "dd": -0.19,  "var99": -0.096, "cvar99": -0.112},
+    "CDG TAWFIR":              {"perf": 5.58,  "vol": 1.91,  "sharpe": 1.762, "sortino": 2.278, "alpha_j": -0.52, "beta": 0.61,  "te": 1.576, "ir": -1.868, "dd": -1.69,  "var99": -0.344, "cvar99": -0.388},
+    "EMERGENCE SERENITE":      {"perf": 10.73, "vol": 2.27,  "sharpe": 3.739, "sortino": 5.365, "alpha_j":  3.17, "beta": 0.85,  "te": 1.353, "ir":  1.630, "dd": -3.60,  "var99": -0.616, "cvar99": -0.684},
+    "CAPITAL TRUST EQUILIBRE": {"perf": 11.92, "vol": 9.11,  "sharpe": 1.178, "sortino": 1.420, "alpha_j": -8.53, "beta": 2.90,  "te": 6.662, "ir":  0.510, "dd": -7.63,  "var99": -1.710, "cvar99": -1.965},
+    "AD YIELD FUND":           {"perf": 3.22,  "vol": 0.58,  "sharpe": 1.681, "sortino": 2.277, "alpha_j":  0.43, "beta": 0.09,  "te": 2.073, "ir": -2.561, "dd": -0.21,  "var99": -0.089, "cvar99": -0.103},
 }
 
 NOMS     = list(POIDS_ACTUELS.keys())
@@ -254,16 +233,6 @@ R_GLOBAL = generer_rendements_synthetiques()
 # ══════════════════════════════════════════════════════════════════════════════
 
 def calcul_stats(w_arr, R=R_GLOBAL):
-    """
-    Calcule les statistiques du portefeuille.
-
-    Performance, volatilité, Sharpe, Sortino, drawdown → via rendements synthétiques
-    (trajectoire journalière cohérente avec les vrais paramètres).
-
-    VaR 99% et CVaR 99% → agrégation pondérée des VaR/CVaR individuelles réelles
-    avec facteur de diversification calibré (0.7465) pour que le portefeuille
-    de référence donne exactement VaR = -0.375% (valeur historique réelle).
-    """
     r_ptf   = R @ w_arr
     perf    = r_ptf.mean() * 252 * 100
     vol     = r_ptf.std()  * np.sqrt(252) * 100
@@ -271,107 +240,23 @@ def calcul_stats(w_arr, R=R_GLOBAL):
     r_neg   = r_ptf[r_ptf < RF_DAILY]
     dv      = r_neg.std() * np.sqrt(252) if len(r_neg) > 1 else vol/100
     sortino = (perf/100 - RF) / dv if dv > 1e-8 else 0
-
-    # ── VaR & CVaR : percentile empirique + recalage vers valeurs réelles ──────
-    # Même méthode que le code original (percentile 1% sur rendements simulés),
-    # avec une translation calibrée pour que la VaR du portefeuille de référence
-    # corresponde exactement à la valeur historique réelle de -0.3570%.
-    #
-    # SHIFT_VAR  = VaR_réelle (-0.3570%) - VaR_simulée (-0.5385%) = +0.1815%
-    # RATIO_CVAR = CVaR_réelle / CVaR_simulée : maintient la cohérence VaR/CVaR
-    SHIFT_VAR  =  0.1815   # translation additive en %
-    RATIO_CVAR =  0.7543   # ratio multiplicatif CVaR
-
-    var99_raw  = np.percentile(r_ptf, 1, method="lower") * 100
-    var99      = var99_raw + SHIFT_VAR
-
-    mask_tail  = r_ptf < np.percentile(r_ptf, 1, method="lower")
-    cvar99_raw = r_ptf[mask_tail].mean() * 100 if mask_tail.any() else var99_raw
-    cvar99     = cvar99_raw * RATIO_CVAR
-
+    var99   = np.percentile(r_ptf, 1, method="linear") * 100
+    cvar_mask = r_ptf <= np.percentile(r_ptf, 1)
+    cvar99  = r_ptf[cvar_mask].mean() * 100 if cvar_mask.any() else var99
     cum     = np.cumprod(1 + r_ptf)
     roll    = np.maximum.accumulate(cum)
     dd_max  = ((cum - roll) / roll).min() * 100
-
     return {"perf": perf, "vol": vol, "sharpe": sharpe, "sortino": sortino,
             "var99": var99, "cvar99": cvar99, "dd_max": dd_max}
 
 
-def calculer_bornes_dynamiques(mu_ann, vol_ann, w_actuel):
-    """
-    Calcule des bornes min/max réalistes par OPCVM selon leur profil.
-
-    Logique :
-      - Borne max = f(score risque/rendement) : les OPCVM à fort Sharpe et
-        faible volatilité peuvent recevoir plus de poids.
-      - Borne min = fraction du poids actuel : on garde une présence minimale
-        sur chaque fonds déjà en portefeuille (diversification).
-      - Plafond absolu : 35% (évite la concentration excessive).
-      - Plancher absolu : 0.5% (présence symbolique minimale).
-
-    Paramètres
-    ----------
-    mu_ann  : rendements annualisés (array n)
-    vol_ann : volatilités annualisées (array n)
-    w_actuel: poids actuels normalisés (array n)
-    """
-    n = len(mu_ann)
-
-    # Score Sharpe simplifié par OPCVM (rendement / volatilité)
-    sharpe_ind = np.array([META[nom]["sharpe"] for nom in NOMS])
-    vol_ind    = np.array([META[nom]["vol"]    for nom in NOMS])
-
-    # --- Borne MAXIMALE ---
-    # Base : proportionnelle au score Sharpe de chaque OPCVM
-    # Plus le Sharpe est élevé, plus on peut lui allouer
-    sharpe_pos = np.clip(sharpe_ind, 0.1, None)
-    poids_sharpe = sharpe_pos / sharpe_pos.sum()  # normalise entre 0 et 1
-
-    # Score de volatilité inversée : OPCVM peu volatils peuvent peser plus
-    vol_inv = 1.0 / (vol_ind + 0.1)
-    poids_vol = vol_inv / vol_inv.sum()
-
-    # Score composite : 60% Sharpe + 40% faible vol
-    score = 0.60 * poids_sharpe + 0.40 * poids_vol
-
-    # Max = score * facteur_amplification, plafonné à 35%
-    facteur = 3.5  # score moyen ~1/n → max moyen ~3.5/n ≈ 25% pour 14 OPCVM
-    max_bounds = np.clip(score * facteur, 0.05, 0.35)
-
-    # --- Borne MINIMALE ---
-    # Présence minimale = 30% du poids actuel, plancher à 0.5%
-    min_bounds = np.clip(w_actuel * 0.30, 0.005, 0.10)
-
-    # Cohérence : si min > max, on abaisse min
-    for i in range(n):
-        if min_bounds[i] >= max_bounds[i]:
-            min_bounds[i] = max(0.005, max_bounds[i] * 0.5)
-
-    return list(zip(min_bounds, max_bounds))
-
-
 def optimiser(methode, w_actuel, R=R_GLOBAL):
-    """
-    Optimisation avec bornes dynamiques par OPCVM.
-
-    Les bornes sont calculées selon le profil risque/rendement de chaque fonds :
-      - OPCVM à fort Sharpe et faible volatilité → borne max plus élevée
-      - OPCVM à faible Sharpe et forte volatilité → borne max plus basse
-      - Présence minimale maintenue sur chaque fonds (diversification)
-      - Somme = 100% obligatoire
-    """
     mu  = R.mean(axis=0) * 252
     cov = np.cov(R.T) * 252
     n   = len(w_actuel)
-
-    # Bornes dynamiques basées sur le profil de chaque OPCVM
-    bounds = calculer_bornes_dynamiques(mu, np.sqrt(np.diag(cov)), w_actuel)
-
-    # Contrainte : somme = 100%
+    bounds = [(0.01, 0.25)] * n
     constraints = [{"type": "eq", "fun": lambda w: w.sum() - 1.0}]
-
-    # Rendement min = 80% du rendement actuel (plus conservateur qu'avant)
-    ret_min = (mu @ w_actuel) * 0.80
+    ret_min = (mu @ w_actuel) * 0.5
     if methode != "Min Variance":
         constraints.append({"type": "ineq", "fun": lambda w: (mu @ w) - ret_min})
 
@@ -389,51 +274,23 @@ def optimiser(methode, w_actuel, R=R_GLOBAL):
 
     rng = np.random.default_rng(42)
     best = None
-
-    # Point de départ 1 : poids actuels
     starts = [w_actuel.copy()]
-
-    # Points de départ 2-6 : poids proportionnels au score Sharpe + bruit
-    sharpe_ind = np.array([META[nom]["sharpe"] for nom in NOMS])
-    sharpe_pos = np.clip(sharpe_ind, 0.1, None)
-    w_sharpe   = sharpe_pos / sharpe_pos.sum()
-
-    for alpha in [1.0, 0.7, 0.5, 0.3]:
-        w0 = alpha * w_sharpe + (1 - alpha) * rng.dirichlet(np.ones(n))
-        # Respecter les bornes
-        lo = np.array([b[0] for b in bounds])
-        hi = np.array([b[1] for b in bounds])
-        w0 = np.clip(w0, lo, hi)
-        if w0.sum() > 1e-8:
-            w0 /= w0.sum()
-        starts.append(w0)
-
-    # Points de départ 7-13 : Dirichlet aléatoires clippés
-    for _ in range(7):
+    for _ in range(8):
         w0 = rng.dirichlet(np.ones(n))
-        w0 = np.clip(w0, lo, hi)
-        if w0.sum() > 1e-8:
-            w0 /= w0.sum()
+        w0 = np.clip(w0, 0.01, 0.25)
+        w0 /= w0.sum()
         starts.append(w0)
 
     for w0 in starts:
         try:
             res = minimize(objectives[methode], w0, method="SLSQP",
                            bounds=bounds, constraints=constraints,
-                           options={"maxiter": 2000, "ftol": 1e-12})
-            if res.success and (best is None or res.fun < best.fun):
+                           options={"maxiter": 1000, "ftol": 1e-10})
+            if best is None or res.fun < best.fun:
                 best = res
         except Exception:
             pass
-
-    if best is not None and best.success:
-        w_opt = best.x
-        lo = np.array([b[0] for b in bounds])
-        hi = np.array([b[1] for b in bounds])
-        w_opt = np.clip(w_opt, lo, hi)
-        w_opt /= w_opt.sum()
-        return w_opt
-    return w_actuel
+    return best.x if best is not None and best.success else w_actuel
 
 
 @st.cache_data
@@ -452,17 +309,17 @@ def calculer_frontiere(R=R_GLOBAL):
 
     vols, rets, sharpes, var99s, cvar99s = [], [], [], [], []
     constraints_base = [{"type": "eq", "fun": lambda w: w.sum() - 1.0}]
-
-    # Bornes cohérentes avec l'optimiseur : long only, max 35% par OPCVM
-    bounds = [(0.0, 0.35)] * n
+    bounds = [(0.01, 0.25)] * n
     obj    = lambda w: w @ cov @ w
 
     for t in targets:
         cst = constraints_base + [{"type": "eq", "fun": lambda w, tt=t: mu @ w - tt}]
         rng = np.random.default_rng(0)
         best = None
-        for _ in range(8):
-            w0 = rng.dirichlet(np.ones(n))   # point de depart libre sur le simplex
+        for _ in range(6):
+            w0 = rng.dirichlet(np.ones(n))
+            w0 = np.clip(w0, 0.01, 0.25)
+            w0 /= w0.sum()
             try:
                 res = minimize(obj, w0, method="SLSQP", bounds=bounds,
                                constraints=cst, options={"maxiter": 800, "ftol": 1e-10})
@@ -471,20 +328,19 @@ def calculer_frontiere(R=R_GLOBAL):
             except Exception:
                 pass
         if best is not None and best.success:
-            w     = best.x
+            w    = best.x
             r_ptf = R @ w
             vol_p = np.sqrt(w @ cov @ w) * 100
             ret_p = mu @ w * 100
             sh_p  = (ret_p/100 - RF) / (vol_p/100) if vol_p > 1e-8 else 0
-            # Même recalage que calcul_stats
-            SHIFT_VAR  =  0.1815
-            RATIO_CVAR =  0.7543
-            v99_raw = np.percentile(r_ptf, 1, method="lower") * 100
-            v99     = v99_raw + SHIFT_VAR
-            mask    = r_ptf < np.percentile(r_ptf, 1, method="lower")
-            cv99    = r_ptf[mask].mean() * 100 * RATIO_CVAR if mask.any() else v99
-            vols.append(vol_p); rets.append(ret_p); sharpes.append(sh_p)
-            var99s.append(v99); cvar99s.append(cv99)
+            v99   = np.percentile(r_ptf, 1, method="linear") * 100
+            mask  = r_ptf <= np.percentile(r_ptf, 1)
+            cv99  = r_ptf[mask].mean() * 100 if mask.any() else v99
+            vols.append(vol_p)
+            rets.append(ret_p)
+            sharpes.append(sh_p)
+            var99s.append(v99)
+            cvar99s.append(cv99)
 
     return (np.array(vols), np.array(rets),
             np.array(sharpes), np.array(var99s), np.array(cvar99s))
@@ -493,10 +349,6 @@ def calculer_frontiere(R=R_GLOBAL):
 # ══════════════════════════════════════════════════════════════════════════════
 # GESTION SESSION STATE — poids des sliders
 # ══════════════════════════════════════════════════════════════════════════════
-# Stratégie : on stocke les poids cibles dans "poids_cible_{nom}".
-# Au début de chaque cycle, on écrit ces valeurs directement dans
-# "slider_{nom}" (clé du widget) AVANT que les sliders soient créés.
-# Streamlit accepte cela car les widgets n'existent pas encore dans ce cycle.
 
 # Initialiser les poids cibles au premier lancement
 for nom in NOMS:
@@ -516,7 +368,7 @@ st.sidebar.markdown(f"""
 <div style="background:{COLORS['mid_green']};padding:12px;border-radius:8px;margin-bottom:12px;
             border-left:4px solid {COLORS['light_green']}">
   <h2 style="color:white;margin:0;font-size:1.1rem">⚖️ Pondérations OPCVM</h2>
-  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (0% – 35%)</p>
+  <p style="color:{COLORS['mint']};font-size:0.8rem;margin:4px 0 0">Ajustez les poids (1% – 25%)</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -537,17 +389,13 @@ poids_user = {}
 for cat, fonds in CATEGORIES.items():
     with st.sidebar.expander(cat, expanded=True):
         for nom in fonds:
-            # Le slider lit sa valeur depuis st.session_state[f"slider_{nom}"]
-            # qu'on a injecté juste au-dessus — value= est ignoré si la clé existe,
-            # donc on ne passe pas value= du tout pour éviter toute confusion.
             poids_user[nom] = st.slider(
                 nom.replace("FCP ", "").replace("SICAV ", ""),
-                min_value=0.0, max_value=35.0,
+                min_value=0.0, max_value=25.0,
                 step=0.1,
                 key=f"slider_{nom}",
                 format="%.1f%%"
             )
-            # Mettre à jour la cible avec la valeur courante du slider
             st.session_state[f"poids_cible_{nom}"] = poids_user[nom]
 
 total_poids = sum(poids_user.values())
@@ -565,20 +413,20 @@ else:
 
 st.sidebar.markdown("---")
 
-# ── Bouton Réinitialiser ──────────────────────────────────────────────────────
+# Bouton Réinitialiser
 if st.sidebar.button("🔄 Réinitialiser les poids", use_container_width=True):
     for nom in NOMS:
         st.session_state[f"poids_cible_{nom}"] = float(POIDS_ACTUELS[nom])
     st.rerun()
 
-# ── Sélecteur de méthode ──────────────────────────────────────────────────────
+# Sélecteur de méthode
 methode_optim = st.sidebar.selectbox(
     "🎯 Méthode d'optimisation",
     METHODES,
     key="methode_select",
 )
 
-# ── Bouton Appliquer ──────────────────────────────────────────────────────────
+# Bouton Appliquer
 if st.sidebar.button(f"⚡ Appliquer : {methode_optim}", use_container_width=True, type="primary"):
     w_cur = np.array([poids_user[n] / 100 for n in NOMS])
     w_cur = np.clip(w_cur, 0.01, 0.25)
@@ -671,7 +519,7 @@ with tab1:
     col_left, col_right = st.columns([1.1, 1.9])
 
     with col_left:
-        st.markdown('<div class="section-title">🥧 Répartition des Poids</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Répartition des Poids</div>', unsafe_allow_html=True)
         poids_pct = w_norm * 100
         fig_pie = go.Figure(go.Pie(
             labels=[n.replace("FCP ", "").replace("SICAV ", "") for n in NOMS],
@@ -709,6 +557,8 @@ with tab1:
             text=[f"{p:.1f}%" for p in poids_pct],
             textposition="outside", textfont=dict(size=8)
         ))
+        fig_bar.add_hline(y=1,  line_dash="dot", line_color=COLORS["light_green"], line_width=1)
+        fig_bar.add_hline(y=25, line_dash="dot", line_color=COLORS["red"],         line_width=1)
         fig_bar.update_layout(
             barmode="group", height=380,
             margin=dict(t=10, b=80, l=10, r=10),
@@ -716,7 +566,7 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(244,247,251,0.5)",
             xaxis=dict(tickangle=-45, tickfont=dict(size=8)),
-            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 40]),
+            yaxis=dict(title="Poids (%)", gridcolor="#E2E8F0", range=[0, 30]),
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -755,7 +605,7 @@ with tab2:
     st.markdown('<div class="section-title">🎯 Frontière Efficiente de Markowitz — Vue enrichie</div>',
                 unsafe_allow_html=True)
 
-    # ── Contrôles utilisateur ────────────────────────────────────────
+    # Contrôles utilisateur
     ctrl1, ctrl2, ctrl3 = st.columns(3)
     with ctrl1:
         colorby = st.selectbox(
@@ -768,7 +618,7 @@ with tab2:
     with ctrl3:
         show_cml = st.checkbox("Afficher la CML", value=True)
 
-    # ── Calculs ──────────────────────────────────────────────────────
+    # Calculs
     with st.spinner("Calcul de la frontière efficiente (200 points)..."):
         fe_vols, fe_rets, fe_sharpes, fe_var99s, fe_cvar99s = calculer_frontiere()
 
@@ -789,7 +639,7 @@ with tab2:
         "Min CVaR":     "diamond",
     }
 
-    # ── Choix de la variable couleur ─────────────────────────────────
+    # Choix de la variable couleur
     color_map_choice = {
         "Ratio de Sharpe": (fe_sharpes, "Sharpe", "RdYlGn",    False),
         "VaR 99%":         (fe_var99s,  "VaR 99%<br>(%/j)",  "RdYlGn_r", False),
@@ -797,7 +647,7 @@ with tab2:
     }
     color_vals, color_title, colorscale, _ = color_map_choice[colorby]
 
-    # ── Figure ───────────────────────────────────────────────────────
+    # Figure
     fig_fe = go.Figure()
 
     # Zone de fond : annotations quadrants
@@ -840,7 +690,7 @@ with tab2:
             customdata=hover_fe,
         ))
 
-        # Ligne de contour de la frontière (fond)
+        # Ligne de contour de la frontière
         sorted_idx = np.argsort(fe_vols)
         fig_fe.add_trace(go.Scatter(
             x=fe_vols[sorted_idx], y=fe_rets[sorted_idx],
@@ -850,7 +700,7 @@ with tab2:
             hoverinfo="skip",
         ))
 
-    # ── Portefeuille Tangent (Max Sharpe sur la frontière) ────────────
+    # Portefeuille Tangent (Max Sharpe sur la frontière)
     if len(fe_sharpes) > 0:
         tang_idx = np.argmax(fe_sharpes)
         tang_vol = fe_vols[tang_idx]
@@ -873,14 +723,13 @@ with tab2:
             ),
         ))
 
-        # CML : depuis Rf jusqu'au tangent puis extrapolée
+        # CML
         if show_cml:
             slope_cml = (tang_ret / 100 - RF) / (tang_vol / 100 + 1e-8)
             vol_end   = tang_vol * 1.5
             vol_cml   = np.array([0, tang_vol, vol_end])
             ret_cml   = (RF + slope_cml * vol_cml / 100) * 100
 
-            # Segment Rf → Tangent (plein)
             fig_fe.add_trace(go.Scatter(
                 x=vol_cml[:2], y=ret_cml[:2],
                 mode="lines",
@@ -888,7 +737,6 @@ with tab2:
                 name=f"CML (Rf={RF*100:.2f}%)",
                 hoverinfo="skip",
             ))
-            # Segment Tangent → extrapolé (pointillé)
             fig_fe.add_trace(go.Scatter(
                 x=vol_cml[1:], y=ret_cml[1:],
                 mode="lines",
@@ -896,7 +744,6 @@ with tab2:
                 showlegend=False,
                 hoverinfo="skip",
             ))
-            # Point Rf
             fig_fe.add_trace(go.Scatter(
                 x=[0], y=[RF * 100],
                 mode="markers+text",
@@ -909,7 +756,7 @@ with tab2:
                 hoverinfo="skip",
             ))
 
-    # ── OPCVM individuels ─────────────────────────────────────────────
+    # OPCVM individuels
     if show_indiv:
         for nom in NOMS:
             m   = META[nom]
@@ -933,7 +780,7 @@ with tab2:
                 ),
             ))
 
-    # ── Portefeuille Actuel ───────────────────────────────────────────
+    # Portefeuille Actuel
     fig_fe.add_trace(go.Scatter(
         x=[stats_ref["vol"]], y=[stats_ref["perf"]],
         mode="markers+text",
@@ -949,7 +796,7 @@ with tab2:
         ),
     ))
 
-    # ── Portefeuille Courant (user) ───────────────────────────────────
+    # Portefeuille Courant
     fig_fe.add_trace(go.Scatter(
         x=[stats_cur["vol"]], y=[stats_cur["perf"]],
         mode="markers+text",
@@ -965,7 +812,7 @@ with tab2:
         ),
     ))
 
-    # ── 3 méthodes d'optimisation ─────────────────────────────────────
+    # 3 méthodes d'optimisation
     for m_name, s in optim_points.items():
         fig_fe.add_trace(go.Scatter(
             x=[s["vol"]], y=[s["perf"]],
@@ -983,7 +830,7 @@ with tab2:
             ),
         ))
 
-    # Ligne de distance vers la frontière (actuel → point le + proche)
+    # Ligne de distance vers la frontière
     if len(fe_vols) > 0:
         dist = np.sqrt((fe_vols - stats_ref["vol"])**2 + (fe_rets - stats_ref["perf"])**2)
         nearest_idx = np.argmin(dist)
@@ -1034,7 +881,7 @@ with tab2:
     )
     st.plotly_chart(fig_fe, use_container_width=True)
 
-    # ── Légende explicative ───────────────────────────────────────────
+    # Légende explicative
     leg1, leg2, leg3, leg4, leg5 = st.columns(5)
     with leg1:
         st.markdown(f"""<div style="text-align:center;padding:8px;background:white;border-radius:8px;
@@ -1057,7 +904,7 @@ with tab2:
         border:2px solid {COLORS['gray']};font-size:0.8rem;">
         ⬛ <b>Actuel</b><br>Portefeuille référence</div>""", unsafe_allow_html=True)
 
-    # ── Résumé tableau ────────────────────────────────────────────────
+    # Résumé tableau
     st.markdown('<div class="section-title">📊 Résumé des 3 Méthodes d\'Optimisation</div>', unsafe_allow_html=True)
     rows_m = []
     for m_name, s in optim_points.items():
@@ -1074,7 +921,7 @@ with tab2:
     # Ajouter Tangent
     if len(fe_sharpes) > 0:
         tang_s = calcul_stats(
-            optimiser("Max Sharpe", w_ref)  # approximation du tangent
+            optimiser("Max Sharpe", w_ref)
         )
         rows_m.insert(0, {
             "Méthode":            "⭐ Tangent (FE)",
@@ -1088,51 +935,6 @@ with tab2:
         })
     df_m = pd.DataFrame(rows_m).set_index("Méthode")
     st.dataframe(df_m, use_container_width=True, height=230)
-
-    # ── Tableau des pondérations optimisées par méthode ───────────────
-    st.markdown('<div class="section-title">📐 Pondérations Optimisées par Méthode (poids libres 0–100%)</div>',
-                unsafe_allow_html=True)
-
-    # Calculer les poids pour chaque méthode
-    w_par_methode = {}
-    for m in METHODES:
-        w_par_methode[m] = optimiser(m, w_ref)
-
-    # Construire le dataframe : lignes = OPCVM, colonnes = Actuel + 3 méthodes
-    rows_w = []
-    for i, nom in enumerate(NOMS):
-        row = {
-            "OPCVM": nom[:22],
-            "Actuel (%)": f"{w_ref[i]*100:.1f}%",
-        }
-        for m in METHODES:
-            w_val = w_par_methode[m][i] * 100
-            row[f"{m} (%)"] = f"{w_val:.1f}%"
-        rows_w.append(row)
-
-    df_w = pd.DataFrame(rows_w).set_index("OPCVM")
-
-    # Ligne totale
-    total_row = {"Actuel (%)": "100.0%"}
-    for m in METHODES:
-        total_row[f"{m} (%)"] = f"{w_par_methode[m].sum()*100:.1f}%"
-    df_totaux = pd.DataFrame([total_row], index=["∑ Total"])
-    df_w_full = pd.concat([df_w, df_totaux])
-
-    st.dataframe(df_w_full, use_container_width=True, height=560)
-
-    # Note explicative
-    st.markdown(f"""
-    <div style="background:{COLORS['mint']};border-left:4px solid {COLORS['mid_green']};
-                padding:10px 14px;border-radius:6px;font-size:0.82rem;color:{COLORS['dark_green']};
-                margin-top:8px;">
-      <b>ℹ️ Bornes dynamiques par OPCVM :</b> Chaque fonds reçoit une borne maximale calculée
-      selon son Sharpe (60%) et sa faible volatilité (40%). Les OPCVM les plus efficaces
-      (CDG RENDEMENT, EMERGENCE SERENITE) peuvent recevoir jusqu'à ~35%, les moins efficaces
-      restent plafonnés plus bas. Une présence minimale (~30% du poids actuel) est maintenue
-      sur chaque fonds pour assurer la diversification. Somme = 100% garantie.
-    </div>
-    """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1200,7 +1002,7 @@ with tab3:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# TAB 4 — COMPARAISON MÉTHODES (3 seulement)
+# TAB 4 — COMPARAISON MÉTHODES (SANS RADAR)
 # ═══════════════════════════════════════════════════════════════════
 with tab4:
     st.markdown('<div class="section-title">⚖️ Comparaison Visuelle des 3 Méthodes d\'Optimisation</div>',
@@ -1213,6 +1015,7 @@ with tab4:
             if m not in optim_points:
                 optim_points[m] = calcul_stats(w_optimises[m])
 
+    # Heatmap des poids (colonne de gauche)
     col_h, col_pv = st.columns([1.3, 1.7])
 
     with col_h:
@@ -1228,7 +1031,7 @@ with tab4:
             textfont=dict(size=8, color="black"),
             hovertemplate="<b>%{y}</b> — %{x}<br>Poids: %{z:.1f}%<extra></extra>",
             colorbar=dict(title="Poids (%)", thickness=15, len=0.8),
-            zmin=0, zmax=35,
+            zmin=0, zmax=25,
         ))
         fig_hm.update_layout(
             height=420, paper_bgcolor="rgba(0,0,0,0)",
@@ -1240,10 +1043,11 @@ with tab4:
 
     with col_pv:
         st.markdown("#### 📈 Performance vs Volatilité")
-        perf_m   = [stats_ref["perf"]] + [optim_points[m]["perf"] for m in optim_points]
-        vol_m    = [stats_ref["vol"]]  + [optim_points[m]["vol"]  for m in optim_points]
+        perf_m = [stats_ref["perf"]] + [optim_points[m]["perf"] for m in optim_points]
+        vol_m  = [stats_ref["vol"]]  + [optim_points[m]["vol"]  for m in optim_points]
         noms_ptf = ["Actuel"] + list(optim_points.keys())
         cols_bar2 = [COLORS["gray"], COLORS["mid_green"], COLORS["navy"], COLORS["red"]]
+        
         fig_pv = go.Figure()
         fig_pv.add_trace(go.Scatter(
             x=vol_m, y=perf_m,
@@ -1273,6 +1077,7 @@ with tab4:
         )
         st.plotly_chart(fig_pv, use_container_width=True)
 
+    # Comparaison des mesures de risque
     st.markdown('<div class="section-title">📉 Comparaison des Mesures de Risque</div>', unsafe_allow_html=True)
     noms_ptf  = ["Actuel"] + list(optim_points.keys())
     vars_ptf  = [stats_ref["var99"]]  + [optim_points[m]["var99"]  for m in optim_points]
@@ -1302,6 +1107,7 @@ with tab4:
     )
     st.plotly_chart(fig_var, use_container_width=True)
 
+    # Comparaison Sharpe & Sortino
     st.markdown('<div class="section-title">⭐ Comparaison Sharpe & Sortino</div>', unsafe_allow_html=True)
     sharpes  = [stats_ref["sharpe"]]  + [optim_points[m]["sharpe"]  for m in optim_points]
     sortinos = [stats_ref["sortino"]] + [optim_points[m]["sortino"] for m in optim_points]
@@ -1337,7 +1143,7 @@ st.markdown(f"""
     Rf = 2.25% · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR · Optimiseur SLSQP
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;letter-spacing:0.05em;">
-    © 2026 · Raydae
+    © 2026 · Ben said Raydae
   </p>
 </div>
 """, unsafe_allow_html=True)
