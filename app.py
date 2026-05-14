@@ -183,7 +183,7 @@ META = {
     # Perf = performance annualisée réelle | Beta OLS | Alpha Jensen corrigé | Sharpe ajusté Rf=2.25%
     "AFG GOV BOND FUND":       {"perf": 5.74,  "vol": 2.36, "sharpe": 1.63, "sortino": 2.31, "alpha_j":  0.69, "beta": 1.23, "te": 1.50, "ir":  0.82, "dd": -2.71, "var99": -0.384, "cvar99": -0.412},
     "AD BALANCED FUND":        {"perf": 9.58,  "vol": 32.49, "sharpe": 1.93, "sortino": 2.88, "alpha_j":-49.55, "beta": 1.35, "te":10.52, "ir": -0.89, "dd": -8.87, "var99": -1.906, "cvar99": -2.145},
-    "AFG Optimal Fund":        {"perf": 12.22, "vol": 8.79, "sharpe": 1.23, "sortino": 1.46, "alpha_j": -3.29, "beta": 1.54, "te": 3.52, "ir":  0.49, "dd": -7.75, "var99": -1.573, "cvar99": -1.831},
+    "AFG OPTIMAL FUND":        {"perf": 12.22, "vol": 8.79, "sharpe": 1.23, "sortino": 1.46, "alpha_j": -3.29, "beta": 1.54, "te": 3.52, "ir":  0.49, "dd": -7.75, "var99": -1.573, "cvar99": -1.831},
     "CDG IZDIHAR":             {"perf": 8.98,  "vol": 24.76, "sharpe": 2.34, "sortino": 3.97, "alpha_j":-15.01, "beta": 2.85, "te":22.95, "ir":  1.13, "dd": -6.71, "var99": -1.293, "cvar99": -1.524},
     "AD SELECT BANK":          {"perf":  3.61, "vol": 0.55, "sharpe": 2.44, "sortino": 3.23, "alpha_j":  0.90, "beta": 1.19, "te": 0.32, "ir":  2.99, "dd": -0.19, "var99": -0.081, "cvar99": -0.094},
     "ALPHA BANQUES FUND":      {"perf":  3.32, "vol": 0.50, "sharpe": 2.16, "sortino": 2.90, "alpha_j":  0.66, "beta": 1.06, "te": 0.28, "ir":  2.41, "dd": -0.18, "var99": -0.078, "cvar99": -0.091},
