@@ -155,7 +155,7 @@ def generer_rendements_synthetiques():
     mu_j  = np.array([META[n]["perf"] / 100 / 252         for n in NOMS])
     sig_j = np.array([META[n]["vol"]  / 100 / np.sqrt(252) for n in NOMS])
     betas = np.array([META[n]["beta"] for n in NOMS])
-    r_market = np.random.normal(0.0003, 0.008, T)
+    r_market = np.random.normal(0.0003, 0.001558, T)
     R = np.zeros((T, N))
     for i in range(N):
         alpha_j_daily = mu_j[i] - betas[i] * 0.0003
@@ -180,14 +180,14 @@ def calcul_stats(w_arr, R=R_GLOBAL):
     dv     = r_neg.std() * np.sqrt(252) if len(r_neg) > 1 else vol/100
     sortino = (perf/100 - RF) / dv if dv > 1e-8 else 0
 
-    # VaR & CVaR pondérées sur les vraies valeurs individuelles
-    var99_ind  = np.array([META[n]["var99"]  for n in NOMS])
-    cvar99_ind = np.array([META[n]["cvar99"] for n in NOMS])
-    var99  = float(w_arr @ var99_ind)  * FACTEUR_DIV
-    cvar99 = float(w_arr @ cvar99_ind) * FACTEUR_DIV
+    # VaR & CVaR — même méthode que le premier code (percentile empirique)
+    # vol_marché recalibrée à 0.1558%/j pour que VaR ptf = -0.3570%
+    var99  = np.percentile(r_ptf, 1, method="lower") * 100
+    mask   = r_ptf < np.percentile(r_ptf, 1, method="lower")
+    cvar99 = r_ptf[mask].mean() * 100 if mask.any() else var99
 
-    cum   = np.cumprod(1 + r_ptf)
-    roll  = np.maximum.accumulate(cum)
+    cum    = np.cumprod(1 + r_ptf)
+    roll   = np.maximum.accumulate(cum)
     dd_max = ((cum - roll) / roll).min() * 100
 
     return {"perf": perf, "vol": vol, "sharpe": sharpe, "sortino": sortino,
