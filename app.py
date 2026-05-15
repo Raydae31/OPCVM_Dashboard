@@ -436,7 +436,7 @@ with tab1:
 
     col_left, col_right = st.columns([1.1, 1.9])
     with col_left:
-        st.markdown('<div class="section-title">🥧 Répartition des Poids</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Répartition des Poids</div>', unsafe_allow_html=True)
         poids_pct = w_norm * 100
         fig_pie = go.Figure(go.Pie(
             labels=[n.replace("FCP ", "").replace("SICAV ", "") for n in NOMS],
@@ -798,12 +798,10 @@ st.markdown("---")
 st.markdown(f"""
 <div style="text-align:center;padding:20px;">
   <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
-    <b>OPCVM Portfolio Dashboard v3</b> — Valeurs META réelles (tableau indicateurs OPCVM).<br>
-    VaR/CVaR = agrégation pondérée des valeurs historiques individuelles réelles.<br>
-    Rf = 2.25% · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
+    <b>OPCVM Portfolio Dashboard v3</b> —  · 247 jours · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;">
-    © 2026 · Raydae
+    © 2026 · Ben said Raydae
   </p>
 </div>
 """, unsafe_allow_html=True)
