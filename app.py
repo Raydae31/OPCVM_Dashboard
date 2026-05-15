@@ -183,8 +183,8 @@ def calcul_stats(w_arr, R=R_GLOBAL):
     # VaR & CVaR pondérées sur les vraies valeurs individuelles
     var99_ind  = np.array([META[n]["var99"]  for n in NOMS])
     cvar99_ind = np.array([META[n]["cvar99"] for n in NOMS])
-    var99  = float(w_arr @ var99_ind)
-    cvar99 = float(w_arr @ cvar99_ind)
+    var99  = float(w_arr @ var99_ind)  * FACTEUR_DIV
+    cvar99 = float(w_arr @ cvar99_ind) * FACTEUR_DIV
 
     cum   = np.cumprod(1 + r_ptf)
     roll  = np.maximum.accumulate(cum)
