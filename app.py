@@ -1114,7 +1114,7 @@ st.markdown("---")
 st.markdown(f"""
 <div style="text-align:center;padding:20px;">
   <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
-    <b>OPCVM Portfolio Dashboard v4</b> — {obs_label} · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
+    <b>OPCVM Portfolio Dashboard v0</b> — {obs_label} · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;">
     © 2026 · Ben said Raydae
