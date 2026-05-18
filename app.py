@@ -167,61 +167,61 @@ METHODES = ["Min Variance", "Max Sharpe", "Min CVaR"]
 
 def charger_rendements_excel(uploaded_file):
     """
-    Lit le fichier Rendements_OPCVM_final.xlsx.
-    Détecte automatiquement la structure :
-      - Première colonne = dates (ou index)
-      - Colonnes suivantes = noms des OPCVM
-    Retourne (R_matrix, noms_actifs, freq_info)
+    Parser dédié pour Rendements_Final.xlsx (structure à deux blocs) :
+      - Bloc journalier  : col 2 = date, cols 3-12  = 10 OPCVM (VL journalières)
+      - Bloc hebdomadaire: col 17 = date, cols 18-21 = 4 OPCVM (VL hebdomadaires)
+    Les VL hebdomadaires sont rééchantillonnées sur les dates journalières (ffill)
+    pour produire une matrice de rendements journaliers unifiée à 14 colonnes.
+    Retourne (df_ret, noms_colonnes, freq, sheet_used, error)
     """
     try:
         xls = pd.ExcelFile(uploaded_file)
         sheet_names = xls.sheet_names
 
-        # Chercher la feuille la plus probable
-        target_sheet = None
+        # Identifier la feuille VL
+        target_sheet = sheet_names[0]
         for sh in sheet_names:
-            sh_lower = sh.lower()
-            if any(k in sh_lower for k in ["rendement", "return", "perf", "nav", "vl", "data"]):
+            if any(k in sh.lower() for k in ["vl", "rendement", "return", "data", "nav"]):
                 target_sheet = sh
                 break
-        if target_sheet is None:
-            target_sheet = sheet_names[0]
 
-        df_raw = pd.read_excel(uploaded_file, sheet_name=target_sheet, index_col=0)
+        df = pd.read_excel(uploaded_file, sheet_name=target_sheet, header=None)
 
-        # Nettoyer : supprimer lignes/colonnes entièrement vides
-        df_raw = df_raw.dropna(how="all").dropna(axis=1, how="all")
+        # ── Bloc journalier ─────────────────────────────────────────────────
+        # Ligne 0 = headers, col 2 = dates, cols 3..12 = VL (10 fonds)
+        header_j = [str(c).strip() for c in df.iloc[0, 3:13].tolist()]
+        dates_j  = pd.to_datetime(df.iloc[1:, 2], errors="coerce")
+        vl_j     = df.iloc[1:, 3:13].apply(pd.to_numeric, errors="coerce")
+        vl_j.index = range(len(vl_j))
+        vl_j.columns = header_j
+        vl_j["_date"] = dates_j.values
+        vl_j = vl_j.dropna(subset=["_date"]).sort_values("_date").set_index("_date")
+        vl_j.index.name = "date"
+        ret_j = vl_j.pct_change().dropna()
 
-        # Convertir en float
-        df_num = df_raw.apply(pd.to_numeric, errors="coerce")
-        df_num = df_num.dropna(how="all")
+        # ── Bloc hebdomadaire ────────────────────────────────────────────────
+        # Ligne 0 = headers, col 17 = dates, cols 18..21 = VL (4 fonds)
+        header_h = [str(c).strip() for c in df.iloc[0, 18:22].tolist()]
+        dates_h  = pd.to_datetime(df.iloc[1:, 17], errors="coerce")
+        vl_h     = df.iloc[1:, 18:22].apply(pd.to_numeric, errors="coerce")
+        vl_h.index = range(len(vl_h))
+        vl_h.columns = header_h
+        vl_h["_date"] = dates_h.values
+        vl_h = vl_h.dropna(subset=["_date"]).sort_values("_date").set_index("_date")
+        vl_h.index.name = "date"
 
-        # Si les valeurs ressemblent à des VL (>> 1), calculer les rendements
-        col_means = df_num.mean()
-        if col_means.median() > 10:
-            # VL → rendements
-            df_ret = df_num.pct_change().dropna()
-        else:
-            # Déjà des rendements
-            df_ret = df_num.dropna()
+        # Rééchantillonnage : propager les VL hebdo sur toutes les dates journalières
+        vl_h_daily  = vl_h.reindex(vl_j.index, method="ffill")
+        ret_h_daily = vl_h_daily.pct_change().dropna()
 
-        # Normaliser les noms de colonnes (uppercase strip)
-        df_ret.columns = [str(c).strip().upper() for c in df_ret.columns]
+        # ── Fusion ────────────────────────────────────────────────────────────
+        df_ret = pd.concat([ret_j, ret_h_daily], axis=1).dropna()
 
-        # Détecter la fréquence
-        freq = "journalière"
-        try:
-            idx = pd.to_datetime(df_raw.index, errors="coerce")
-            if idx.notna().sum() > 5:
-                diffs = idx.dropna().diff().dropna().dt.days.median()
-                if diffs >= 5:
-                    freq = "hebdomadaire"
-                elif diffs >= 25:
-                    freq = "mensuelle"
-        except Exception:
-            pass
+        # Normaliser les noms (uppercase)
+        df_ret.columns = [c.upper() for c in df_ret.columns]
 
-        return df_ret, list(df_ret.columns), freq, target_sheet, None
+        obs = f"{len(df_ret)} obs journalières ({len(vl_h)} semaines pour les fonds hebdo)"
+        return df_ret, list(df_ret.columns), "journalière", target_sheet, None
 
     except Exception as e:
         return None, None, None, None, str(e)
@@ -229,26 +229,47 @@ def charger_rendements_excel(uploaded_file):
 
 def aligner_opcvm(df_ret_raw, noms_meta):
     """
-    Fait correspondre les colonnes du fichier Excel aux noms META.
-    Retourne un DataFrame aligné sur les noms META disponibles.
+    Fait correspondre les colonnes du fichier Excel (uppercase) aux noms META.
+    Utilise d'abord un mapping explicite pour les noms connus du fichier,
+    puis tombe en correspondance partielle pour les autres.
     """
+    # Mapping explicite : nom META → fragment clé attendu dans la colonne Excel
+    MAPPING_EXPLICITE = {
+        "AFG GOV BOND FUND":       "AFG GOV BOND",
+        "AD BALANCED FUND":        "BALENCED FUND",   # typo dans le fichier
+        "AFG OPTIMAL FUND":        "AFG OPTIMAL",
+        "CDG IZDIHAR":             "CDG IZDIHAR",
+        "AD SELECT BANK":          "AD SELECT BANK",
+        "ALPHA BANQUES FUND":      "ALPHA BANQUES",
+        "ALPHA SECURE FUND":       "ALPHA SECURE",
+        "CAM OBLIBANQUES":         "CAM OBLIBANQUES",
+        "CDG RENDEMENT":           "CDG RENDEMENT",
+        "OBLIG CT":                "OBLIG CT",
+        "CDG TAWFIR":              "CDG TAWFIR",
+        "EMERGENCE SERENITE":      "EMERGENCE SERENITE",
+        "CAPITAL TRUST EQUILIBRE": "CAPITAL TRUST",
+        "AD YIELD FUND":           "AD YIELD FUND",
+    }
+
     mapping = {}
-    cols_excel = list(df_ret_raw.columns)
+    cols_excel = list(df_ret_raw.columns)  # déjà en uppercase
+
     for nom_meta in noms_meta:
-        nom_up = nom_meta.upper()
-        # Correspondance exacte
-        if nom_up in cols_excel:
-            mapping[nom_meta] = nom_up
-            continue
-        # Correspondance partielle (mots-clés)
-        mots = [m for m in nom_up.split() if len(m) > 3]
-        best_score = 0
-        best_col   = None
+        # 1. Mapping explicite
+        cle = MAPPING_EXPLICITE.get(nom_meta, "").upper()
+        if cle:
+            trouve = next((c for c in cols_excel if cle in c), None)
+            if trouve:
+                mapping[nom_meta] = trouve
+                continue
+
+        # 2. Correspondance partielle par mots (fallback)
+        mots = [m for m in nom_meta.upper().split() if len(m) > 3]
+        best_score, best_col = 0, None
         for col in cols_excel:
             score = sum(1 for m in mots if m in col)
             if score > best_score:
-                best_score = score
-                best_col   = col
+                best_score, best_col = score, col
         if best_score >= 1:
             mapping[nom_meta] = best_col
 
@@ -259,16 +280,11 @@ def recalculer_meta_depuis_rendements(df_ret, freq="journalière"):
     """
     Recalcule perf, vol, VaR, CVaR, drawdown, sharpe, sortino
     directement depuis les rendements réels.
+    Note : les VL hebdomadaires sont déjà rééchantillonnées en journalier (ffill)
+    avant d'être passées ici — on utilise donc toujours l'annualisation journalière (252).
     """
-    if freq == "hebdomadaire":
-        ann = 52
-        sqrt_ann = np.sqrt(52)
-    elif freq == "mensuelle":
-        ann = 12
-        sqrt_ann = np.sqrt(12)
-    else:
-        ann = 252
-        sqrt_ann = np.sqrt(252)
+    ann      = 252
+    sqrt_ann = np.sqrt(252)
 
     meta_recalc = {}
     for col in df_ret.columns:
@@ -1099,7 +1115,6 @@ st.markdown(f"""
 <div style="text-align:center;padding:20px;">
   <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
     <b>OPCVM Portfolio Dashboard v4</b> — {obs_label} · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
-    <br>
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;">
     © 2026 · Ben said Raydae
