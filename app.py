@@ -696,22 +696,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Bannière d'information sur les corrections appliquées
-if DATA_SOURCE == "synthétique":
-    st.info(
-        "**Mode synthétique** — Les VaR de CDG RENDEMENT (-0.297%) et EMERGENCE SERENITE (-0.287%) "
-        "ont été corrigées (méthode hebdo/√5). "
-        "Chargez votre fichier `Rendements_OPCVM_final.xlsx` via la sidebar pour utiliser les vraies données.",
-        icon="ℹ️"
-    )
-elif DATA_SOURCE == "réel":
-    st.success(
-        f"**Données réelles chargées** depuis `{sheet_used}` — "
-        f"Tous les indicateurs (VaR, Sharpe, Sortino, drawdown) sont calculés sur vos {len(df_ret_excel)} observations réelles.",
-        icon="✅"
-    )
-
-
 tab1, tab2, tab3, tab4 = st.tabs([
     "📈 Tableau de Bord", "🎯 Frontière Efficiente",
     "📋 Analyse Détaillée", "⚖️ Comparaison Méthodes",
@@ -1115,7 +1099,7 @@ st.markdown(f"""
 <div style="text-align:center;padding:20px;">
   <p style="color:{COLORS['gray']};font-size:0.75rem;margin:0;">
     <b>OPCVM Portfolio Dashboard v4</b> — {obs_label} · 3 méthodes : Min Variance · Max Sharpe · Min CVaR
-    <br><span style="color:{COLORS['gold']}">VaR CDG RENDEMENT et EMERGENCE SERENITE corrigées (hebdo/√5)</span>
+    <br>
   </p>
   <p style="color:{COLORS['light_green']};font-size:0.8rem;margin:8px 0 0;font-weight:600;">
     © 2026 · Ben said Raydae
